@@ -1,0 +1,6 @@
+# AI/LLM dependencies for enhanced sentiment analysis
+openai>=1.3.0
+anthropic>=0.3.0
+transformers>=4.21.0
+torch>=1.13.0
+tensorflow>=2.10.0

@@ -1,0 +1,64 @@
+# Channel Configuration for Employee Engagement Pulse
+# This file defines which Slack channels to monitor for sentiment analysis
+
+# Default channels to monitor
+default_channels:
+  - general
+  - random
+  - announcements
+
+# Engineering team channels
+engineering:
+  - backend
+  - frontend
+  - devops
+  - qa
+  - code-review
+
+# Product and design channels  
+product:
+  - product
+  - design
+  - user-research
+  - product-updates
+
+# Management and leadership channels
+leadership:
+  - leadership
+  - management
+  - all-hands
+  - hr
+
+# Project-specific channels (examples)
+projects:
+  - project-alpha
+  - project-beta
+  - sprint-planning
+  - retrospectives
+
+# Social and team building channels
+social:
+  - team-lunch
+  - coffee-chat
+  - celebrations
+  - help-requests
+
+# Configuration settings
+settings:
+  # Minimum message count per day to include channel in analysis
+  min_daily_messages: 1
+  
+  # Auto-activate new channels (true/false)
+  auto_activate_new: false
+  
+  # Channels to exclude from monitoring (even if they exist)
+  excluded_channels:
+    - bot-testing
+    - spam
+    - archived-*
+    
+  # Default sentiment thresholds
+  thresholds:
+    burnout_warning: -0.1
+    burnout_critical: -0.2
+    sentiment_volatility: 0.3

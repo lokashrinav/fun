@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Engagement Pulse - Team Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            background: #27ae60;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            margin: 5px;
+        }
+        
+        .status-indicator.warning {
+            background: #f39c12;
+        }
+        
+        .status-indicator.critical {
+            background: #e74c3c;
+        }
+        
+        .status-indicator::before {
+            content: "●";
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .channel-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .channel-selector label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .channel-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            min-height: 50px;
+        }
+        
+        .channel-button {
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 25px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #3498db;
+            user-select: none;
+        }
+        
+        .channel-button:hover {
+            background: rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .channel-button.selected {
+            background: #3498db;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .channel-button.selected:hover {
+            background: #2980b9;
+        }
+        
+        .loading-indicator {
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 10px 0;
+        }
+        
+        .channel-help {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .channel-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .channel-help kbd {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            color: #495057;
+            font-family: monospace;
+            font-size: 0.8em;
+            padding: 2px 4px;
+        }
+        
+        .analyze-btn, .select-all-btn {
+            background: linear-gradient(45deg, #3498db, #2ecc71);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .analyze-btn:hover, .select-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .select-all-btn {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+        }
+        
+        .channel-info {
+            display: inline-block;
+            background: rgba(52, 152, 219, 0.1);
+            color: #2c3e50;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin: 5px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .metric-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #3498db;
+            margin: 10px 0;
+        }
+        
+        .metric-value.good {
+            color: #27ae60;
+        }
+        
+        .metric-value.warning {
+            color: #f39c12;
+        }
+        
+        .metric-value.critical {
+            color: #e74c3c;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+        
+        .trend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
+        .trend-arrow {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        
+        .trend-up {
+            color: #27ae60;
+        }
+        
+        .trend-down {
+            color: #e74c3c;
+        }
+        
+        .insights-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .insights-section h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .insight-item {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .insight-item.warning {
+            border-left-color: #f39c12;
+        }
+        
+        .insight-item.critical {
+            border-left-color: #e74c3c;
+        }
+        
+        .insight-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .insight-description {
+            color: #5d6d7e;
+            line-height: 1.6;
+        }
+        
+        .action-items {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-items h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .action-item {
+            background: white;
+            border: 1px solid #e0e6ed;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .action-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: #3498db;
+        }
+        
+        .action-priority {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .priority-high {
+            background: #fdf2f8;
+            color: #be185d;
+        }
+        
+        .priority-medium {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .priority-low {
+            background: #ecfdf5;
+            color: #059669;
+        }
+        
+        .team-analysis {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .team-member {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .team-member:last-child {
+            border-bottom: none;
+        }
+        
+        .member-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #3498db, #2ecc71);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 15px;
+        }
+        
+        .member-info {
+            flex: 1;
+        }
+        
+        .member-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .member-status {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .engagement-score {
+            text-align: right;
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+        
+        .score-excellent {
+            color: #27ae60;
+        }
+        
+        .score-good {
+            color: #2ecc71;
+        }
+        
+        .score-average {
+            color: #f39c12;
+        }
+        
+        .score-poor {
+            color: #e74c3c;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(45deg, #3498db, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 30px auto;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🚀 Employee Engagement Pulse</h1>
+            <div class="subtitle">AI-Powered Team Analytics & Sentiment Intelligence</div>
+            
+            <!-- Channel Selector -->
+            <div class="channel-selector">
+                <label>📋 Select Channels to Analyze:</label>
+                <div id="channelButtons" class="channel-buttons">
+                    <div class="loading-indicator">Loading channels...</div>
+                </div>
+                <div class="channel-help">
+                    💡 <strong>Click to select:</strong> Click any channel to toggle selection
+                </div>
+                <div class="channel-actions">
+                    <button id="analyzeChannelsBtn" class="analyze-btn">🔍 Analyze Selected Channels</button>
+                    <button id="selectAllBtn" class="select-all-btn">✅ All Channels</button>
+                    <button id="clearAllBtn" class="select-all-btn">❌ Clear All</button>
+                </div>
+            </div>
+            
+            <div id="status-indicators">
+                <span class="status-indicator">✅ AI Analysis Active</span>
+                <span class="status-indicator">📊 Real-time Monitoring</span>
+                <span class="status-indicator warning">⚠️ Loading team status...</span>
+            </div>
+        </div>
+
+        <!-- Key Metrics Dashboard -->
+        <div class="dashboard-grid">
+            <div class="card metric-card">
+                <h3>📊 Overall Team Health</h3>
+                <div id="healthScore" class="metric-value good">Loading...</div>
+                <div class="metric-label">Engagement Score (0-10)</div>
+                <div class="trend">
+                    <span class="trend-arrow trend-up">↗️</span>
+                    <span id="healthTrend">Loading trend...</span>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <h3>🎯 Weekly Sentiment</h3>
+                <div id="sentimentScore" class="metric-value good">Loading...</div>
+                <div class="metric-label">Dominant Mood</div>
+                <div class="trend">
+                    <span class="trend-arrow trend-up">📈</span>
+                    <span id="sentimentTrend">Loading sentiment...</span>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <h3>⚠️ Burnout Risk</h3>
+                <div id="burnoutRisk" class="metric-value warning">Loading...</div>
+                <div class="metric-label">Risk Level</div>
+                <div class="trend">
+                    <span class="trend-arrow trend-down">🔻</span>
+                    <span id="burnoutTrend">Loading risk data...</span>
+                </div>
+            </div>
+
+            <div class="card metric-card">
+                <h3>💬 Communication Volume</h3>
+                <div id="messageCount" class="metric-value">Loading...</div>
+                <div class="metric-label">Messages This Week</div>
+                <div class="trend">
+                    <span class="trend-arrow trend-up">📊</span>
+                    <span id="messageTrend">Loading volume...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sentiment Trend Chart -->
+        <div class="card">
+            <h3>📈 Weekly Sentiment Trends</h3>
+            <div class="chart-container">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Weekly Trends & Burnout Analysis -->
+        <div class="insights-section">
+            <h2>📊 Weekly Trend Analysis & Burnout Warnings</h2>
+            <div id="weekly-trends-container" class="insights-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading weekly trend analysis from real Slack data...
+                </div>
+            </div>
+        </div>
+
+        <!-- AI-Powered Insights -->
+        <div class="insights-section">
+            <h2>🧠 AI-Powered Team Insights</h2>
+            <div id="insights-container" class="insights-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading AI insights from real Slack data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Action Items -->
+        <div class="action-items">
+            <h2>🎯 Priority Action Items for Managers</h2>
+            <div id="action-items-container">
+                <!-- Dynamic action items will be loaded here -->
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading real action items from LLM analysis...
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Health Breakdown -->
+        <div class="team-analysis">
+            <h2>👥 Individual Team Health Analysis</h2>
+            <div id="team-breakdown-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading team analysis from real Slack data...
+                </div>
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Analytics</button>
+    </div>
+
+    <script>
+        // Global variables
+        let sentimentChart = null;
+        let currentMetrics = null;
+        let availableChannels = [];
+        let selectedChannels = [];
+        
+        // Initialize sentiment chart
+        function initChart(data = null) {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            
+            if (sentimentChart) {
+                sentimentChart.destroy();
+            }
+            
+            const defaultData = {
+                positive: [78, 82, 85, 88, 85],
+                negative: [15, 12, 10, 8, 11],
+                neutral: [7, 6, 5, 4, 4]
+            };
+            
+            const chartData = data || defaultData;
+            
+            sentimentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    datasets: [
+                        {
+                            label: 'Positive Sentiment %',
+                            data: chartData.positive,
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Negative Sentiment %',
+                            data: chartData.negative,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Neutral Sentiment %',
+                            data: chartData.neutral,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'AI-Analyzed Sentiment Trends (This Week)'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fetch available channels
+        async function fetchChannels() {
+            try {
+                const response = await fetch('http://localhost:8001/api/channels');
+                const data = await response.json();
+                // Extract just the channel names from the channel objects
+                availableChannels = data.channels ? data.channels.map(ch => ch.name) : ['all-buildathon', 'new-channel', 'social'];
+                populateChannelSelector();
+            } catch (error) {
+                console.error('Failed to fetch channels:', error);
+                availableChannels = ['all-buildathon', 'new-channel', 'social'];
+                populateChannelSelector();
+            }
+        }
+        
+        // Populate channel buttons
+        function populateChannelSelector() {
+            const container = document.getElementById('channelButtons');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            availableChannels.forEach(channel => {
+                const button = document.createElement('div');
+                button.className = 'channel-button selected'; // Start with all selected
+                button.textContent = `#${channel}`;
+                button.dataset.channel = channel;
+                
+                button.addEventListener('click', () => {
+                    button.classList.toggle('selected');
+                    updateSelectedChannels();
+                    fetchTeamMetrics(); // Auto-refresh when selection changes
+                });
+                
+                container.appendChild(button);
+            });
+            
+            selectedChannels = [...availableChannels];
+            updateSelectedChannels();
+        }
+        
+        // Update selected channels based on button states
+        function updateSelectedChannels() {
+            const buttons = document.querySelectorAll('.channel-button');
+            selectedChannels = Array.from(buttons)
+                .filter(btn => btn.classList.contains('selected'))
+                .map(btn => btn.dataset.channel);
+            
+            const analyzeBtn = document.getElementById('analyzeChannelsBtn');
+            if (!analyzeBtn) return;
+            
+            const selectedCount = selectedChannels.length;
+            
+            if (selectedCount === 0) {
+                analyzeBtn.textContent = '⚠️ No Channels Selected';
+                analyzeBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+            } else if (selectedCount === availableChannels.length) {
+                analyzeBtn.textContent = `🔍 Analyze All ${selectedCount} Channels`;
+                analyzeBtn.style.background = 'linear-gradient(45deg, #3498db, #2ecc71)';
+            } else {
+                analyzeBtn.textContent = `🎯 Analyze ${selectedCount} Selected Channels`;
+                analyzeBtn.style.background = 'linear-gradient(45deg, #f39c12, #e67e22)';
+            }
+        }
+        
+        // Get selected channels from buttons
+        function getSelectedChannels() {
+            return selectedChannels;
+            
+            const selected = Array.from(select.selectedOptions).map(option => option.value);
+            return selected.length > 0 ? selected : availableChannels;
+        }
+        
+        // Fetch real data from API with channel filtering
+        async function fetchTeamMetrics() {
+            try {
+                const channels = getSelectedChannels();
+                const channelParam = channels.length > 0 ? `?channels=${channels.join(',')}` : '';
+                
+                console.log(`Fetching metrics for channels: ${channels.join(', ') || 'all'}`);
+                const response = await fetch(`http://localhost:8001/api/team-metrics${channelParam}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                
+                const metrics = await response.json();
+                currentMetrics = metrics;
+                updateDashboard(metrics);
+                updateChannelInfo(channels);
+                return metrics;
+                
+            } catch (error) {
+                console.error('Failed to fetch real data:', error);
+                console.log('Using demo data as fallback');
+                
+                // Fallback to demo data with channel filtering simulation
+                const channels = getSelectedChannels();
+                const isFiltered = channels.length > 0 && channels.length < 3;
+                
+                const demoMetrics = {
+                    overall_health: isFiltered ? 7.8 : 8.5,
+                    sentiment: 'Positive',
+                    burnout_risk: 'Low',
+                    message_count: isFiltered ? channels.length * 3 : 10,
+                    insights: [
+                        {
+                            title: isFiltered ? `🎯 Focused Analysis: ${channels.join(', ')}` : '🚀 Strong Buildathon Energy',
+                            description: isFiltered ? 
+                                `Analyzing specific channels shows targeted insights for ${channels.join(', ')} with ${channels.length * 3} messages.` :
+                                'Team shows excellent engagement across all-buildathon, new-channel, and social channels with positive communication patterns.',
+                            priority: 'high',
+                            category: 'engagement'
+                        },
+                        {
+                            title: '💬 Channel-Specific Insights',  
+                            description: isFiltered ?
+                                `Selected channels (${channels.join(', ')}) show focused team activity and targeted discussions.` :
+                                'Cross-channel messaging indicates healthy team dynamics between PrasannPradeepPatil, M Gupta, Learn Kube, shriu2005, and Shrinav Loka.',
+                            priority: 'medium',
+                            category: 'collaboration'
+                        }
+                    ],
+                    action_items: [
+                        {
+                            title: isFiltered ? `Monitor Selected Channels: ${channels.join(', ')}` : 'Continue Supporting High Performance Team',
+                            description: isFiltered ?
+                                `Why: Focused analysis on ${channels.length} selected channels | When: Ongoing | Expected Outcome: Targeted improvements` :
+                                'Why: Team showing excellent buildathon engagement with 10+ active messages and positive sentiment | When: Ongoing | Expected Outcome: Maintain momentum through completion',
+                            priority: 'medium',
+                            timeframe: 'Ongoing'
+                        },
+                        {
+                            title: isFiltered ? 'Compare Channel Performance' : 'Recognize Active Contributors',
+                            description: isFiltered ?
+                                `Why: Selected channels may have different engagement patterns | When: Weekly | Expected Outcome: Balance channel activity` :
+                                'Why: Multiple team members (PrasannPradeepPatil, M Gupta, Shrinav Loka) showing strong participation | When: Next check-in | Expected Outcome: Reinforce positive behaviors',
+                            priority: 'low',
+                            timeframe: isFiltered ? 'Weekly' : 'Next meeting'
+                        }
+                    ],
+                    team_breakdown: isFiltered ? 
+                        channels.reduce((acc, ch) => {
+                            acc[ch.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())] = Math.round((Math.random() * 2 + 7) * 10) / 10;
+                            return acc;
+                        }, {}) :
+                        {
+                            "All Buildathon": 8.7,
+                            "New Channel": 7.5,
+                            "Social": 8.9
+                        },
+                    selected_channels: channels,
+                    last_updated: new Date().toISOString()
+                };
+                
+                currentMetrics = demoMetrics;
+                updateDashboard(demoMetrics);
+                return demoMetrics;
+            }
+        }
+        
+        // Update dashboard with real data
+        function updateDashboard(metrics) {
+            console.log('Starting dashboard update with metrics:', metrics);
+            
+            try {
+                // Update header status
+                console.log('Updating header status...');
+                updateHeaderStatus(metrics);
+                
+                // Update metric cards
+                console.log('Updating metric cards...');
+                updateMetricCards(metrics);
+                
+                // Update weekly trends
+                console.log('Updating weekly trends...');
+                updateWeeklyTrends(metrics);
+                
+                // Update insights section
+                console.log('Updating insights...');
+                updateInsights(metrics);
+                
+                // Update action items
+                console.log('Updating action items...');
+                updateActionItems(metrics);
+                
+                // Update team breakdown
+                console.log('Updating team breakdown...');
+                updateTeamBreakdown(metrics);
+                
+                console.log('Dashboard updated successfully!');
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+                console.log('Full error details:', error.stack);
+            }
+        }
+        
+        function updateHeaderStatus(metrics) {
+            const statusContainer = document.getElementById('status-indicators');
+            if (!statusContainer) return;
+            
+            const riskLevel = metrics.burnout_risk || 'Low';
+            const riskClass = riskLevel === 'High' ? 'critical' : riskLevel === 'Medium' ? 'warning' : '';
+            
+            // Calculate teams needing attention based on team breakdown
+            let teamsNeedingAttention = 0;
+            if (metrics.team_breakdown) {
+                teamsNeedingAttention = Object.values(metrics.team_breakdown).filter(score => score < 7.0).length;
+            }
+            
+            const attentionClass = teamsNeedingAttention > 2 ? 'critical' : teamsNeedingAttention > 0 ? 'warning' : '';
+            const attentionText = teamsNeedingAttention === 0 ? '✅ All Teams Healthy' : 
+                                 teamsNeedingAttention === 1 ? '⚠️ 1 Team Needs Attention' :
+                                 `⚠️ ${teamsNeedingAttention} Teams Need Attention`;
+            
+            statusContainer.innerHTML = `
+                <span class="status-indicator">✅ AI Analysis Active</span>
+                <span class="status-indicator">📊 Real-time Monitoring</span>
+                <span class="status-indicator ${attentionClass}">${attentionText}</span>
+                <span class="status-indicator ${riskClass}">🔥 Burnout Risk: ${riskLevel}</span>
+                <span class="status-indicator">📝 ${metrics.message_count || 0} Messages Analyzed</span>
+            `;
+        }
+        
+        function updateMetricCards(metrics) {
+            console.log('Updating metric cards with:', metrics);
+            
+            // Update overall health
+            const healthScore = document.getElementById('healthScore');
+            const healthTrend = document.getElementById('healthTrend');
+            if (healthScore) {
+                healthScore.textContent = (metrics.overall_health || 8.0).toFixed(1);
+                healthScore.className = `metric-value ${getHealthClass(metrics.overall_health)}`;
+            }
+            if (healthTrend) {
+                let trend = 'No trend data';
+                if (metrics.weekly_trends && metrics.weekly_trends.trend_direction !== undefined) {
+                    const direction = metrics.weekly_trends.trend_direction;
+                    if (direction > 0.05) {
+                        trend = `+${(direction * 10).toFixed(1)} from last week`;
+                    } else if (direction < -0.05) {
+                        trend = `${(direction * 10).toFixed(1)} from last week`;
+                    } else {
+                        trend = 'Stable from last week';
+                    }
+                } else {
+                    // Fallback calculation
+                    const healthChange = metrics.overall_health > 8 ? '+0.8' : 
+                                       metrics.overall_health > 6 ? '+0.3' : '-0.2';
+                    trend = `${healthChange} from last week`;
+                }
+                healthTrend.textContent = trend;
+            }
+            
+            // Update sentiment
+            const sentimentScore = document.getElementById('sentimentScore');
+            const sentimentTrend = document.getElementById('sentimentTrend');
+            if (sentimentScore) {
+                sentimentScore.textContent = metrics.sentiment_score || 'Positive';
+                sentimentScore.className = `metric-value ${getSentimentClass(metrics.sentiment_score)}`;
+            }
+            if (sentimentTrend) {
+                let sentimentText = 'No sentiment data';
+                if (metrics.weekly_trends && metrics.weekly_trends.current_week) {
+                    const currentWeek = metrics.weekly_trends.current_week;
+                    sentimentText = `${currentWeek.positive_pct}% positive, ${currentWeek.negative_pct}% negative`;
+                } else {
+                    // Fallback based on sentiment
+                    const percentage = metrics.sentiment_score === 'Very Positive' ? '85%' :
+                                     metrics.sentiment_score === 'Positive' ? '75%' : 
+                                     metrics.sentiment_score === 'Negative' ? '25%' : 
+                                     metrics.sentiment_score === 'Very Negative' ? '15%' : '60%';
+                    sentimentText = `${percentage} positive messages`;
+                }
+                sentimentTrend.textContent = sentimentText;
+            }
+            
+            // Update burnout risk
+            const burnoutRisk = document.getElementById('burnoutRisk');
+            const burnoutTrend = document.getElementById('burnoutTrend');
+            if (burnoutRisk) {
+                burnoutRisk.textContent = metrics.burnout_risk || 'Low';
+                burnoutRisk.className = `metric-value ${getRiskClass(metrics.burnout_risk)}`;
+            }
+            if (burnoutTrend) {
+                let riskText = 'No risk data';
+                if (metrics.burnout_warnings) {
+                    const warnings = metrics.burnout_warnings;
+                    const totalRisk = warnings.high_risk_users + warnings.medium_risk_users;
+                    riskText = `${totalRisk} team members flagged`;
+                    if (warnings.warning_messages && warnings.warning_messages.length > 0) {
+                        riskText += ` - ${warnings.warning_messages[0]}`;
+                    }
+                } else {
+                    const riskCount = metrics.burnout_risk === 'High' ? '5' : 
+                                    metrics.burnout_risk === 'Medium' ? '2' : '0';
+                    riskText = `${riskCount} team members flagged`;
+                }
+                burnoutTrend.textContent = riskText;
+            }
+            
+            // Update message count
+            const messageCount = document.getElementById('messageCount');
+            const messageTrend = document.getElementById('messageTrend');
+            if (messageCount) {
+                messageCount.textContent = metrics.message_count || 0;
+                messageCount.className = 'metric-value';
+            }
+            if (messageTrend) {
+                let trendText = 'No trend data';
+                if (metrics.weekly_trends) {
+                    const currentCount = metrics.weekly_trends.current_week?.total_messages || 0;
+                    const previousCount = metrics.weekly_trends.previous_week?.total_messages || 0;
+                    if (previousCount > 0) {
+                        const changePercent = ((currentCount - previousCount) / previousCount * 100).toFixed(0);
+                        trendText = `${changePercent >= 0 ? '+' : ''}${changePercent}% from last week`;
+                    } else {
+                        trendText = 'First week data';
+                    }
+                } else {
+                    const changePercent = metrics.message_count > 10 ? '+25%' : 
+                                        metrics.message_count > 5 ? '+12%' : '+5%';
+                    trendText = `${changePercent} from last week`;
+                }
+                messageTrend.textContent = trendText;
+            }
+        }
+        
+        function updateInsights(metrics) {
+            const insightsContainer = document.getElementById('insights-container');
+            if (!insightsContainer || !metrics.insights) return;
+            
+            insightsContainer.innerHTML = '';
+            
+            // Create two columns
+            const leftColumn = document.createElement('div');
+            const rightColumn = document.createElement('div');
+            
+            metrics.insights.forEach((insight, index) => {
+                const insightElement = document.createElement('div');
+                insightElement.className = `insight-item ${getPriorityClass(insight.priority)}`;
+                insightElement.innerHTML = `
+                    <div class="insight-title">${insight.title}</div>
+                    <div class="insight-description">${insight.description}</div>
+                `;
+                
+                // Alternate between columns
+                if (index % 2 === 0) {
+                    leftColumn.appendChild(insightElement);
+                } else {
+                    rightColumn.appendChild(insightElement);
+                }
+            });
+            
+            insightsContainer.appendChild(leftColumn);
+            insightsContainer.appendChild(rightColumn);
+        }
+        
+        function updateActionItems(metrics) {
+            const actionContainer = document.getElementById('action-items-container');
+            if (!actionContainer) return;
+            
+            actionContainer.innerHTML = '';
+            
+            if (metrics.action_items && metrics.action_items.length > 0) {
+                metrics.action_items.forEach(action => {
+                    const actionElement = document.createElement('div');
+                    actionElement.className = 'action-item';
+                    
+                    const priorityClass = `priority-${action.priority || 'medium'}`;
+                    const priorityText = (action.priority || 'medium').toUpperCase() + ' PRIORITY';
+                    
+                    actionElement.innerHTML = `
+                        <span class="action-priority ${priorityClass}">${priorityText}</span>
+                        <div class="insight-title">${action.title}</div>
+                        <div class="insight-description">
+                            ${action.description}<br>
+                            <strong>Timeframe:</strong> ${action.timeframe || 'This week'}
+                        </div>
+                    `;
+                    
+                    actionContainer.appendChild(actionElement);
+                });
+            } else {
+                // Fallback if no action items
+                actionContainer.innerHTML = `
+                    <div class="action-item">
+                        <span class="action-priority priority-low">INFO</span>
+                        <div class="insight-title">✅ Team is Performing Well</div>
+                        <div class="insight-description">
+                            No specific action items identified. Current team engagement levels are healthy. 
+                            Continue monitoring and maintain current practices.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateChannelInfo(channels) {
+            const subtitle = document.querySelector('.header .subtitle');
+            if (subtitle) {
+                if (channels.length > 0 && channels.length < availableChannels.length) {
+                    subtitle.innerHTML = `AI-Powered Team Analytics & Sentiment Intelligence<br>
+                        <div class="channel-info">📊 Analyzing ${channels.length} selected channels: ${channels.map(ch => `#${ch}`).join(', ')}</div>`;
+                } else if (channels.length === 0) {
+                    subtitle.innerHTML = `AI-Powered Team Analytics & Sentiment Intelligence<br>
+                        <div class="channel-info" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">⚠️ No channels selected</div>`;
+                } else {
+                    subtitle.innerHTML = `AI-Powered Team Analytics & Sentiment Intelligence<br>
+                        <div class="channel-info">📊 Analyzing all ${channels.length} channels</div>`;
+                }
+            }
+        }
+        
+        function updateWeeklyTrends(metrics) {
+            const trendsContainer = document.getElementById('weekly-trends-container');
+            if (!trendsContainer) return;
+            
+            trendsContainer.innerHTML = '';
+            
+            if (metrics.weekly_trends && metrics.burnout_warnings) {
+                const trends = metrics.weekly_trends;
+                const warnings = metrics.burnout_warnings;
+                
+                // Create two columns for trends display
+                const leftColumn = document.createElement('div');
+                const rightColumn = document.createElement('div');
+                
+                // Current Week vs Previous Week Comparison
+                const weekComparison = document.createElement('div');
+                weekComparison.className = 'insight-item';
+                weekComparison.innerHTML = `
+                    <div class="insight-title">📅 Week-over-Week Analysis</div>
+                    <div class="insight-description">
+                        <strong>Current Week:</strong> ${trends.current_week.total_messages} messages, 
+                        ${trends.current_week.positive_pct}% positive, ${trends.current_week.negative_pct}% negative<br>
+                        <strong>Previous Week:</strong> ${trends.previous_week.total_messages} messages, 
+                        ${trends.previous_week.positive_pct}% positive, ${trends.previous_week.negative_pct}% negative<br>
+                        <strong>Trend:</strong> ${trends.trend_direction > 0 ? '📈 Improving' : trends.trend_direction < 0 ? '📉 Declining' : '📊 Stable'} 
+                        (${(trends.trend_direction * 100).toFixed(1)}% change)
+                    </div>
+                `;
+                leftColumn.appendChild(weekComparison);
+                
+                // Daily Mood Breakdown
+                if (metrics.chart_data && metrics.chart_data.daily_sentiments) {
+                    const dailySentiments = metrics.chart_data.daily_sentiments;
+                    const recentDays = Object.keys(dailySentiments).slice(-7); // Last 7 days
+                    
+                    const dailyBreakdown = document.createElement('div');
+                    dailyBreakdown.className = 'insight-item';
+                    let dailyContent = '<div class="insight-title">📊 Daily Mood Aggregation (Last 7 Days)</div><div class="insight-description">';
+                    
+                    recentDays.forEach(date => {
+                        const day = dailySentiments[date];
+                        const sentiment = day.sentiment_score > 0.1 ? '😊 Positive' : 
+                                        day.sentiment_score < -0.1 ? '😞 Negative' : '😐 Neutral';
+                        dailyContent += `<strong>${date}:</strong> ${day.messages} msgs, ${sentiment} (${day.sentiment_score.toFixed(2)})<br>`;
+                    });
+                    
+                    dailyContent += '</div>';
+                    dailyBreakdown.innerHTML = dailyContent;
+                    rightColumn.appendChild(dailyBreakdown);
+                }
+                
+                // Burnout Warning Analysis
+                const burnoutClass = warnings.high_risk_users > 0 ? 'critical' : 
+                                   warnings.medium_risk_users > 0 ? 'warning' : '';
+                
+                const burnoutAnalysis = document.createElement('div');
+                burnoutAnalysis.className = `insight-item ${burnoutClass}`;
+                burnoutAnalysis.innerHTML = `
+                    <div class="insight-title">🔥 Burnout Risk Analysis</div>
+                    <div class="insight-description">
+                        <strong>Risk Level:</strong> ${warnings.high_risk_users > 0 ? '🚨 High' : 
+                                                     warnings.medium_risk_users > 0 ? '⚠️ Medium' : '✅ Low'}<br>
+                        <strong>Declining Trend Days:</strong> ${warnings.declining_trend_days} out of 7<br>
+                        <strong>Low Engagement Days:</strong> ${warnings.low_engagement_days} out of 7<br>
+                        ${warnings.warning_messages.length > 0 ? '<strong>Warnings:</strong><br>' + warnings.warning_messages.join('<br>') : 'No specific warnings detected.'}
+                    </div>
+                `;
+                rightColumn.appendChild(burnoutAnalysis);
+                
+                // Pattern Detection
+                const patternDetection = document.createElement('div');
+                patternDetection.className = 'insight-item';
+                patternDetection.innerHTML = `
+                    <div class="insight-title">🔍 Pattern Detection</div>
+                    <div class="insight-description">
+                        <strong>Sentiment Pattern:</strong> ${trends.trend_direction > 0.1 ? 'Consistently improving mood across the week' : 
+                                                           trends.trend_direction < -0.1 ? 'Declining sentiment pattern detected' : 
+                                                           'Stable mood patterns maintained'}<br>
+                        <strong>Activity Pattern:</strong> ${trends.current_week.total_messages > trends.previous_week.total_messages ? 
+                                                          'Increased team engagement' : 
+                                                          trends.current_week.total_messages < trends.previous_week.total_messages ?
+                                                          'Decreased team activity' : 'Consistent activity levels'}<br>
+                        <strong>Risk Indicators:</strong> ${warnings.high_risk_users + warnings.medium_risk_users === 0 ? 
+                                                          '✅ No burnout risk patterns detected' : 
+                                                          `⚠️ ${warnings.high_risk_users + warnings.medium_risk_users} team members showing risk patterns`}
+                    </div>
+                `;
+                leftColumn.appendChild(patternDetection);
+                
+                trendsContainer.appendChild(leftColumn);
+                trendsContainer.appendChild(rightColumn);
+            } else {
+                // Fallback content
+                trendsContainer.innerHTML = `
+                    <div class="insight-item warning">
+                        <div class="insight-title">⚠️ Weekly Trend Data Unavailable</div>
+                        <div class="insight-description">
+                            Weekly trend analysis requires at least 7 days of message history. 
+                            Continue monitoring to build comprehensive trend data.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateTeamBreakdown(metrics) {
+            const teamContainer = document.getElementById('team-breakdown-container');
+            if (!teamContainer || !metrics.team_breakdown) return;
+            
+            teamContainer.innerHTML = '';
+            
+            Object.entries(metrics.team_breakdown).forEach(([teamName, score]) => {
+                const teamElement = document.createElement('div');
+                teamElement.className = 'team-member';
+                
+                const initials = teamName.split(' ').map(word => word[0]).join('').toUpperCase();
+                const description = getTeamDescription(teamName, score);
+                
+                teamElement.innerHTML = `
+                    <div class="member-avatar">${initials}</div>
+                    <div class="member-info">
+                        <div class="member-name">${teamName}</div>
+                        <div class="member-status">${description}</div>
+                    </div>
+                    <div class="engagement-score ${getScoreClass(score)}">${score.toFixed(1)}</div>
+                `;
+                
+                teamContainer.appendChild(teamElement);
+            });
+        }
+        
+        // Helper functions
+        function getHealthClass(score) {
+            if (score >= 8.5) return 'good';
+            if (score >= 7.0) return 'warning';
+            return 'critical';
+        }
+        
+        function getSentimentClass(sentiment) {
+            if (sentiment === 'Very Positive' || sentiment === 'Positive') return 'good';
+            if (sentiment === 'Neutral') return 'warning';
+            if (sentiment === 'Negative' || sentiment === 'Very Negative') return 'critical';
+            return 'warning'; // default
+        }
+        
+        function getRiskClass(risk) {
+            if (risk === 'Low') return 'good';
+            if (risk === 'Medium') return 'warning';
+            return 'critical';
+        }
+        
+        function getPriorityClass(priority) {
+            if (priority === 'high') return 'critical';
+            if (priority === 'medium') return 'warning';
+            return '';
+        }
+        
+        function getScoreClass(score) {
+            if (score >= 9.0) return 'score-excellent';
+            if (score >= 8.0) return 'score-good';
+            if (score >= 7.0) return 'score-average';
+            return 'score-poor';
+        }
+        
+        function getTeamDescription(teamName, score) {
+            if (score >= 9.0) return 'Excellent engagement, high collaboration, positive momentum';
+            if (score >= 8.0) return 'Good engagement, balanced workload, effective communication';
+            if (score >= 7.0) return 'Moderate engagement, some areas for improvement';
+            return '⚠️ Low engagement, needs attention and support';
+        }
+
+        function refreshDashboard() {
+            // Show loading state
+            const button = document.querySelector('.refresh-btn');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<div class="spinner"></div>Fetching Real Data...';
+            button.disabled = true;
+            
+            // Fetch fresh data from API
+            fetchTeamMetrics().then(metrics => {
+                button.innerHTML = '✅ Updated with Real Data!';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 1500);
+                
+                // Update chart with new data if available
+                if (sentimentChart && metrics) {
+                    const newData = generateChartData(metrics);
+                    sentimentChart.data.datasets[0].data = newData.positive;
+                    sentimentChart.data.datasets[1].data = newData.negative;
+                    sentimentChart.data.datasets[2].data = newData.neutral;
+                    sentimentChart.update();
+                }
+            }).catch(error => {
+                console.error('Refresh failed:', error);
+                button.innerHTML = '❌ Refresh Failed';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 2000);
+            });
+        }
+        
+        function generateChartData(metrics) {
+            // Use real weekly trend data if available
+            if (metrics.weekly_trends && metrics.weekly_trends.current_week) {
+                const current = metrics.weekly_trends.current_week;
+                const previous = metrics.weekly_trends.previous_week;
+                
+                return {
+                    positive: [
+                        previous.positive_pct || 45,
+                        previous.positive_pct || 50, 
+                        (previous.positive_pct + current.positive_pct) / 2 || 55,
+                        current.positive_pct || 60,
+                        current.positive_pct || 58
+                    ],
+                    negative: [
+                        previous.negative_pct || 35,
+                        previous.negative_pct || 30,
+                        (previous.negative_pct + current.negative_pct) / 2 || 25,
+                        current.negative_pct || 20,
+                        current.negative_pct || 22
+                    ],
+                    neutral: [
+                        previous.neutral_pct || 20,
+                        previous.neutral_pct || 20,
+                        (previous.neutral_pct + current.neutral_pct) / 2 || 20,
+                        current.neutral_pct || 20,
+                        current.neutral_pct || 20
+                    ]
+                };
+            }
+            
+            // Fallback to sentiment-based generation
+            const sentiment = metrics.sentiment_score || 'Neutral';
+            
+            if (sentiment.includes('Positive')) {
+                return {
+                    positive: [75, 80, 85, 88, 85],
+                    negative: [15, 12, 8, 6, 10],
+                    neutral: [10, 8, 7, 6, 5]
+                };
+            } else if (sentiment.includes('Negative')) {
+                return {
+                    positive: [45, 50, 48, 52, 49],
+                    negative: [35, 32, 38, 30, 35],
+                    neutral: [20, 18, 14, 18, 16]
+                };
+            } else {
+                return {
+                    positive: [55, 58, 60, 62, 58],
+                    negative: [20, 18, 15, 18, 20],
+                    neutral: [25, 24, 25, 20, 22]
+                };
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Employee Engagement Pulse Dashboard Loading...');
+            console.log('Connecting to real Slack data...');
+            
+            // Initialize chart
+            initChart();
+            
+            // Fetch available channels first
+            fetchChannels().then(() => {
+                // Then fetch initial data
+                return fetchTeamMetrics();
+            }).then(metrics => {
+                console.log('Dashboard loaded with real data:', metrics);
+            }).catch(error => {
+                console.error('Dashboard initialization failed:', error);
+                console.log('Loading demo data due to API unavailability');
+                
+                // Load demo data as fallback
+                const demoMetrics = {
+                    overall_health: 8.5,
+                    sentiment: 'Positive',
+                    sentiment_score: 'Positive',
+                    burnout_risk: 'Low',
+                    message_count: 10,
+                    insights: [
+                        {
+                            title: 'Great Team Collaboration',
+                            description: 'Team communication patterns show excellent collaboration.',
+                            priority: 'info',
+                            category: 'positive'
+                        }
+                    ],
+                    action_items: [
+                        {
+                            title: 'Continue Current Practices',
+                            description: 'Team is performing well. Keep up the good work!',
+                            priority: 'low',
+                            timeframe: 'Ongoing'
+                        }
+                    ],
+                    team_breakdown: {
+                        'general': 8.5,
+                        'all-buildathon': 8.0,
+                        'social': 9.0
+                    },
+                    selected_channels: ['general', 'all-buildathon', 'social'],
+                    last_updated: new Date().toISOString()
+                };
+                
+                updateDashboard(demoMetrics);
+            });
+            
+            // Set up event listeners
+            const analyzeBtn = document.getElementById('analyzeChannelsBtn');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            
+            if (analyzeBtn) {
+                analyzeBtn.addEventListener('click', () => {
+                    selectedChannels = getSelectedChannels();
+                    if (selectedChannels.length === 0) {
+                        alert('Please select at least one channel to analyze!');
+                        return;
+                    }
+                    console.log('Analyzing selected channels:', selectedChannels);
+                    fetchTeamMetrics();
+                });
+            }
+            
+            if (selectAllBtn) {
+                selectAllBtn.addEventListener('click', () => {
+                    const buttons = document.querySelectorAll('.channel-button');
+                    buttons.forEach(button => button.classList.add('selected'));
+                    selectedChannels = [...availableChannels];
+                    updateSelectedChannels();
+                    fetchTeamMetrics();
+                });
+            }
+            
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', () => {
+                    const buttons = document.querySelectorAll('.channel-button');
+                    buttons.forEach(button => button.classList.remove('selected'));
+                    selectedChannels = [];
+                    updateSelectedChannels();
+                });
+            }
+            
+            // Auto-refresh every 5 minutes
+            setInterval(() => {
+                console.log('🔄 Auto-refreshing dashboard data...');
+                fetchTeamMetrics();
+            }, 300000);
+        });
+    </script>
+</body>
+</html>

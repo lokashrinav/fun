@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dashboard - Employee Engagement Pulse</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Dashboard Debug Tool</h1>
+        <p>Diagnosing loading issues with the Employee Engagement Pulse dashboard</p>
+    </div>
+
+    <div class="debug-section">
+        <h3>🔍 Connection Tests</h3>
+        <div id="connection-status" class="status info">Ready to test...</div>
+        <button class="test-button" onclick="testConnections()">Test All Connections</button>
+        <button class="test-button" onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="debug-section">
+        <h3>📊 API Test Results</h3>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>📝 Debug Log</h3>
+        <div id="debug-log" class="log"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>🌐 CORS & Network Info</h3>
+        <div id="network-info"></div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('debug-log');
+        let connectionStatus = document.getElementById('connection-status');
+        let apiResults = document.getElementById('api-results');
+        let networkInfo = document.getElementById('network-info');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            console.log(logLine);
+            
+            logElement.innerHTML += logLine + '<br>';
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLogs() {
+            logElement.innerHTML = '';
+            apiResults.innerHTML = '';
+            log('Logs cleared');
+        }
+
+        function updateStatus(message, type) {
+            connectionStatus.textContent = message;
+            connectionStatus.className = `status ${type}`;
+        }
+
+        function displayNetworkInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                currentURL: window.location.href,
+                protocol: window.location.protocol,
+                host: window.location.host
+            };
+
+            let html = '<h4>Browser & Network Information:</h4>';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+            networkInfo.innerHTML = html;
+        }
+
+        async function testAPI(url, name) {
+            log(`Testing ${name} API at ${url}...`);
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors'
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                log(`${name} API response: ${response.status} (${duration}ms)`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`${name} API data received: ${JSON.stringify(data).substring(0, 100)}...`);
+                    
+                    return {
+                        success: true,
+                        status: response.status,
+                        data: data,
+                        duration: duration,
+                        headers: Object.fromEntries(response.headers.entries())
+                    };
+                } else {
+                    const errorText = await response.text();
+                    log(`${name} API error: ${response.status} - ${errorText}`, 'error');
+                    return {
+                        success: false,
+                        status: response.status,
+                        error: errorText,
+                        duration: duration
+                    };
+                }
+            } catch (error) {
+                log(`${name} API fetch failed: ${error.message}`, 'error');
+                return {
+                    success: false,
+                    error: error.message,
+                    type: error.name
+                };
+            }
+        }
+
+        async function testConnections() {
+            updateStatus('Testing connections...', 'info');
+            clearLogs();
+            displayNetworkInfo();
+            
+            log('Starting comprehensive connection tests...');
+            
+            // Test APIs
+            const channelsResult = await testAPI('http://localhost:8001/api/channels', 'Channels');
+            const metricsResult = await testAPI('http://localhost:8001/api/team-metrics', 'Team Metrics');
+            
+            // Display results
+            let resultsHTML = '';
+            
+            // Channels API Result
+            resultsHTML += '<div class="debug-section">';
+            resultsHTML += `<h4>📋 Channels API Test</h4>`;
+            if (channelsResult.success) {
+                resultsHTML += `<div class="status success">✅ Success (${channelsResult.duration}ms)</div>`;
+                resultsHTML += `<p><strong>Status:</strong> ${channelsResult.status}</p>`;
+                resultsHTML += `<p><strong>Data:</strong> Found ${channelsResult.data.channels?.length || 0} channels</p>`;
+                resultsHTML += `<p><strong>CORS Headers:</strong></p><ul>`;
+                for (const [key, value] of Object.entries(channelsResult.headers)) {
+                    if (key.toLowerCase().includes('access-control')) {
+                        resultsHTML += `<li><strong>${key}:</strong> ${value}</li>`;
+                    }
+                }
+                resultsHTML += `</ul>`;
+            } else {
+                resultsHTML += `<div class="status error">❌ Failed</div>`;
+                resultsHTML += `<p><strong>Error:</strong> ${channelsResult.error}</p>`;
+                resultsHTML += `<p><strong>Type:</strong> ${channelsResult.type || 'Unknown'}</p>`;
+            }
+            resultsHTML += '</div>';
+
+            // Team Metrics API Result
+            resultsHTML += '<div class="debug-section">';
+            resultsHTML += `<h4>📊 Team Metrics API Test</h4>`;
+            if (metricsResult.success) {
+                resultsHTML += `<div class="status success">✅ Success (${metricsResult.duration}ms)</div>`;
+                resultsHTML += `<p><strong>Status:</strong> ${metricsResult.status}</p>`;
+                resultsHTML += `<p><strong>Health Score:</strong> ${metricsResult.data.overall_health}</p>`;
+                resultsHTML += `<p><strong>Sentiment:</strong> ${metricsResult.data.sentiment_score}</p>`;
+                resultsHTML += `<p><strong>Burnout Risk:</strong> ${metricsResult.data.burnout_risk}</p>`;
+                resultsHTML += `<p><strong>Message Count:</strong> ${metricsResult.data.message_count}</p>`;
+            } else {
+                resultsHTML += `<div class="status error">❌ Failed</div>`;
+                resultsHTML += `<p><strong>Error:</strong> ${metricsResult.error}</p>`;
+                resultsHTML += `<p><strong>Type:</strong> ${metricsResult.type || 'Unknown'}</p>`;
+            }
+            resultsHTML += '</div>';
+
+            apiResults.innerHTML = resultsHTML;
+
+            // Final status
+            if (channelsResult.success && metricsResult.success) {
+                updateStatus('✅ All tests passed! Dashboard should work.', 'success');
+                log('All API tests successful. Dashboard loading issue should be resolved!', 'success');
+            } else {
+                updateStatus('❌ Some tests failed. Check logs for details.', 'error');
+                log('Some API tests failed. This explains why the dashboard is not loading.', 'error');
+            }
+        }
+
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Debug dashboard loaded');
+            displayNetworkInfo();
+            
+            // Wait a moment then auto-test
+            setTimeout(() => {
+                log('Auto-running connection tests...');
+                testConnections();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

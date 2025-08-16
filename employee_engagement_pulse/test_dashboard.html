@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Engagement Pulse - Test Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .metric-value.good { color: #27ae60; }
+        .metric-value.warning { color: #f39c12; }
+        .metric-value.critical { color: #e74c3c; }
+        .channels-section, .insights-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .channel-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .insight-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Employee Engagement Pulse Dashboard</h1>
+        <p>Real-time Slack sentiment analysis and team insights</p>
+    </div>
+
+    <div id="status" class="status loading">Loading dashboard data...</div>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>Overall Health</h3>
+            <div id="healthScore" class="metric-value">--</div>
+            <div id="healthDesc">Team wellness score</div>
+        </div>
+        <div class="metric-card">
+            <h3>Sentiment</h3>
+            <div id="sentimentScore" class="metric-value">--</div>
+            <div id="sentimentDesc">Current team mood</div>
+        </div>
+        <div class="metric-card">
+            <h3>Burnout Risk</h3>
+            <div id="burnoutRisk" class="metric-value">--</div>
+            <div id="burnoutDesc">Risk assessment</div>
+        </div>
+        <div class="metric-card">
+            <h3>Messages Analyzed</h3>
+            <div id="messageCount" class="metric-value">--</div>
+            <div id="messageDesc">Total processed</div>
+        </div>
+    </div>
+
+    <div class="channels-section">
+        <h3>📊 Channel Breakdown</h3>
+        <div id="channelsList">Loading channels...</div>
+    </div>
+
+    <div class="insights-section">
+        <h3>💡 AI Insights</h3>
+        <div id="insightsList">Loading insights...</div>
+    </div>
+
+    <script>
+        let dashboardData = null;
+
+        async function loadDashboard() {
+            try {
+                console.log('🔄 Loading dashboard data...');
+                
+                // Test both API endpoints
+                const [channelsResponse, metricsResponse] = await Promise.all([
+                    fetch('http://localhost:8001/api/channels'),
+                    fetch('http://localhost:8001/api/team-metrics')
+                ]);
+
+                if (!channelsResponse.ok) {
+                    throw new Error(`Channels API failed: ${channelsResponse.status}`);
+                }
+                if (!metricsResponse.ok) {
+                    throw new Error(`Metrics API failed: ${metricsResponse.status}`);
+                }
+
+                const channelsData = await channelsResponse.json();
+                const metricsData = await metricsResponse.json();
+
+                console.log('✅ API data loaded:', { channelsData, metricsData });
+
+                // Update status
+                document.getElementById('status').className = 'status success';
+                document.getElementById('status').textContent = '✅ Dashboard loaded successfully!';
+
+                // Update metrics
+                updateMetrics(metricsData);
+                updateChannels(channelsData, metricsData);
+                updateInsights(metricsData);
+
+                dashboardData = { channels: channelsData, metrics: metricsData };
+
+            } catch (error) {
+                console.error('❌ Dashboard loading failed:', error);
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function updateMetrics(data) {
+            // Health score
+            const healthScore = document.getElementById('healthScore');
+            const healthClass = data.overall_health >= 7 ? 'good' : data.overall_health >= 4 ? 'warning' : 'critical';
+            healthScore.textContent = data.overall_health;
+            healthScore.className = `metric-value ${healthClass}`;
+
+            // Sentiment
+            const sentimentScore = document.getElementById('sentimentScore');
+            const sentimentClass = data.sentiment_score === 'Positive' ? 'good' : 
+                                 data.sentiment_score === 'Negative' ? 'critical' : 'warning';
+            sentimentScore.textContent = data.sentiment_score;
+            sentimentScore.className = `metric-value ${sentimentClass}`;
+
+            // Burnout risk
+            const burnoutRisk = document.getElementById('burnoutRisk');
+            const riskClass = data.burnout_risk === 'Low' ? 'good' : 
+                             data.burnout_risk === 'Medium' ? 'warning' : 'critical';
+            burnoutRisk.textContent = data.burnout_risk;
+            burnoutRisk.className = `metric-value ${riskClass}`;
+
+            // Message count
+            document.getElementById('messageCount').textContent = data.message_count || 0;
+            document.getElementById('messageCount').className = 'metric-value';
+        }
+
+        function updateChannels(channelsData, metricsData) {
+            const channelsList = document.getElementById('channelsList');
+            const channels = channelsData.channels || [];
+            const teamBreakdown = metricsData.team_breakdown || {};
+
+            if (channels.length === 0) {
+                channelsList.innerHTML = '<p>No channels found</p>';
+                return;
+            }
+
+            let html = '';
+            channels.forEach(channel => {
+                const score = teamBreakdown[channel.name] || 'N/A';
+                const scoreClass = typeof score === 'number' ? 
+                    (score >= 7 ? 'good' : score >= 4 ? 'warning' : 'critical') : '';
+                
+                html += `
+                    <div class="channel-item">
+                        <span><strong>#${channel.name}</strong> - ${channel.description}</span>
+                        <span class="metric-value ${scoreClass}" style="font-size: 1.2em;">${score}</span>
+                    </div>
+                `;
+            });
+
+            channelsList.innerHTML = html;
+        }
+
+        function updateInsights(data) {
+            const insightsList = document.getElementById('insightsList');
+            const insights = data.insights || [];
+            const actionItems = data.action_items || [];
+
+            if (insights.length === 0 && actionItems.length === 0) {
+                insightsList.innerHTML = '<p>No insights available</p>';
+                return;
+            }
+
+            let html = '';
+            
+            insights.forEach(insight => {
+                html += `
+                    <div class="insight-item">
+                        <strong>${insight.title}</strong>
+                        <p>${insight.description}</p>
+                        <small>Priority: ${insight.priority} | Category: ${insight.category}</small>
+                    </div>
+                `;
+            });
+
+            actionItems.forEach(action => {
+                html += `
+                    <div class="insight-item">
+                        <strong>📋 ${action.title}</strong>
+                        <p>${action.description}</p>
+                        <small>Priority: ${action.priority} | Category: ${action.category}</small>
+                    </div>
+                `;
+            });
+
+            insightsList.innerHTML = html;
+        }
+
+        // Load dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Test Dashboard initializing...');
+            loadDashboard();
+        });
+
+        // Refresh button (optional)
+        setInterval(() => {
+            console.log('🔄 Auto-refreshing dashboard...');
+            loadDashboard();
+        }, 30000); // Refresh every 30 seconds
+    </script>
+</body>
+</html>

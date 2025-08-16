@@ -1,0 +1,44 @@
+# Core dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.0
+
+# Slack integration
+slack-bolt==1.18.1
+slack-sdk==3.26.1
+
+# Sentiment analysis
+nltk==3.8.1
+emoji==2.8.0
+
+# Task scheduling
+apscheduler==3.10.4
+
+# Data processing
+pandas==2.1.4
+numpy==1.25.2
+
+# Fake data generation (for seeding)
+faker==20.1.0
+
+# Development tools
+python-dotenv==1.0.0
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# AI/ML Enhanced Sentiment Analysis
+transformers==4.36.0
+torch==2.1.0
+scikit-learn==1.3.2
+numpy==1.25.2
+
+# Additional AI packages
+sentence-transformers==2.2.2  # For embeddings
+spacy==3.7.2                  # Advanced NLP
+textblob==0.17.1             # Simple NLP tasks
+
+# Optional GPU support (uncomment if you have NVIDIA GPU)
+# torch-audio==2.1.0
+# torchvision==0.16.0
