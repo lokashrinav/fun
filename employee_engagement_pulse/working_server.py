@@ -103,7 +103,7 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(error_response.encode('utf-8'))
 
 def main():
-    PORT = 8008
+    PORT = int(os.environ.get('PORT', 8008))
     
     print(f"""
 🚀 Employee Engagement Dashboard Server

@@ -704,10 +704,9 @@
         // Fetch available channels
         async function fetchChannels() {
             try {
-                const response = await fetch('http://localhost:8001/api/channels');
+                const response = await fetch('/api/channels');
                 const data = await response.json();
-                // Extract just the channel names from the channel objects
-                availableChannels = data.channels ? data.channels.map(ch => ch.name) : ['all-buildathon', 'new-channel', 'social'];
+                availableChannels = data.channels || ['all-buildathon', 'new-channel', 'social'];
                 populateChannelSelector();
             } catch (error) {
                 console.error('Failed to fetch channels:', error);
@@ -781,7 +780,7 @@
                 const channelParam = channels.length > 0 ? `?channels=${channels.join(',')}` : '';
                 
                 console.log(`Fetching metrics for channels: ${channels.join(', ') || 'all'}`);
-                const response = await fetch(`http://localhost:8001/api/team-metrics${channelParam}`);
+                const response = await fetch(`/api/team-metrics${channelParam}`);
                 
                 if (!response.ok) {
                     throw new Error(`API Error: ${response.status}`);
@@ -864,38 +863,27 @@
         
         // Update dashboard with real data
         function updateDashboard(metrics) {
-            console.log('Starting dashboard update with metrics:', metrics);
+            console.log('Updating dashboard with metrics:', metrics);
             
-            try {
-                // Update header status
-                console.log('Updating header status...');
-                updateHeaderStatus(metrics);
-                
-                // Update metric cards
-                console.log('Updating metric cards...');
-                updateMetricCards(metrics);
-                
-                // Update weekly trends
-                console.log('Updating weekly trends...');
-                updateWeeklyTrends(metrics);
-                
-                // Update insights section
-                console.log('Updating insights...');
-                updateInsights(metrics);
-                
-                // Update action items
-                console.log('Updating action items...');
-                updateActionItems(metrics);
-                
-                // Update team breakdown
-                console.log('Updating team breakdown...');
-                updateTeamBreakdown(metrics);
-                
-                console.log('Dashboard updated successfully!');
-            } catch (error) {
-                console.error('Error updating dashboard:', error);
-                console.log('Full error details:', error.stack);
-            }
+            // Update header status
+            updateHeaderStatus(metrics);
+            
+            // Update metric cards
+            updateMetricCards(metrics);
+            
+            // Update weekly trends
+            updateWeeklyTrends(metrics);
+            
+            // Update insights section
+            updateInsights(metrics);
+            
+            // Update action items
+            updateActionItems(metrics);
+            
+            // Update team breakdown
+            updateTeamBreakdown(metrics);
+            
+            console.log('Dashboard updated successfully');
         }
         
         function updateHeaderStatus(metrics) {
@@ -1218,6 +1206,7 @@
                     </div>
                 `;
             }
+            }
         }
         
         function updateTeamBreakdown(metrics) {
@@ -1376,8 +1365,8 @@
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Employee Engagement Pulse Dashboard Loading...');
-            console.log('Connecting to real Slack data...');
+            console.log('🚀 Employee Engagement Pulse Dashboard Loading...');
+            console.log('🔍 Connecting to real Slack data...');
             
             // Initialize chart
             initChart();
@@ -1387,44 +1376,9 @@
                 // Then fetch initial data
                 return fetchTeamMetrics();
             }).then(metrics => {
-                console.log('Dashboard loaded with real data:', metrics);
+                console.log('✅ Dashboard loaded with real data:', metrics);
             }).catch(error => {
-                console.error('Dashboard initialization failed:', error);
-                console.log('Loading demo data due to API unavailability');
-                
-                // Load demo data as fallback
-                const demoMetrics = {
-                    overall_health: 8.5,
-                    sentiment: 'Positive',
-                    sentiment_score: 'Positive',
-                    burnout_risk: 'Low',
-                    message_count: 10,
-                    insights: [
-                        {
-                            title: 'Great Team Collaboration',
-                            description: 'Team communication patterns show excellent collaboration.',
-                            priority: 'info',
-                            category: 'positive'
-                        }
-                    ],
-                    action_items: [
-                        {
-                            title: 'Continue Current Practices',
-                            description: 'Team is performing well. Keep up the good work!',
-                            priority: 'low',
-                            timeframe: 'Ongoing'
-                        }
-                    ],
-                    team_breakdown: {
-                        'general': 8.5,
-                        'all-buildathon': 8.0,
-                        'social': 9.0
-                    },
-                    selected_channels: ['general', 'all-buildathon', 'social'],
-                    last_updated: new Date().toISOString()
-                };
-                
-                updateDashboard(demoMetrics);
+                console.log('⚠️ Using demo data due to API unavailability');
             });
             
             // Set up event listeners
